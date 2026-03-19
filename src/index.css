@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-bg: #020408;
+  --color-glass: rgba(255, 255, 255, 0.02);
+  --color-glass-border: rgba(255, 255, 255, 0.06);
+  --color-accent-primary: #8b5cf6;
+  --color-accent-secondary: #2563eb;
+  --color-accent-liquid: #06b6d4;
+  --color-text-main: #f1f5f9;
+  --color-text-dim: #64748b;
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text-main font-sans antialiased min-h-screen overflow-x-hidden selection:bg-accent-primary/30;
+  }
+}
+
+@keyframes move {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.animate-blob {
+  animation: move 20s infinite alternate ease-in-out;
+}
+
+.glass-panel {
+  @apply bg-glass backdrop-blur-2xl border border-glass-border rounded-[32px] relative overflow-hidden transition-all duration-300;
+}
+
+.glass-panel:hover {
+  @apply border-glass-border/20 bg-white/[0.03];
+}
+
+.glass-panel::before {
+  content: '';
+  @apply absolute top-0 left-0 right-0 h-[1px] opacity-30;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+}
+
+.ocr-loader {
+  @apply fixed inset-0 bg-bg/95 backdrop-blur-xl z-[150] flex flex-col items-center justify-center gap-6;
+}
+
+.liquid-spinner {
+  @apply w-24 h-24 rounded-full bg-accent-liquid blur-[15px] animate-pulse shadow-[0_0_40px_rgba(6,182,212,0.3)];
+}
+
