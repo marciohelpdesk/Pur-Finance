@@ -44,7 +44,8 @@ import {
   FileText,
   AlertTriangle,
   Hash,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import {
   BarChart,
@@ -79,6 +80,7 @@ interface Transaction {
   icon: React.ReactNode;
   predicted?: boolean; // Flag for auto-suggested categories via OCR
   notes?: string;
+  imageUrl?: string;
 }
 
 interface SubTask {
@@ -132,10 +134,10 @@ const getCategoryIcon = (category: string) => {
 
 // --- Mock Data ---
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: '1', title: 'Restaurante Gourmet', category: 'Alimentação', date: 'Hoje', timestamp: new Date().toISOString().split('T')[0], amount: -85.00, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Jantar com a família no final de semana.' },
-  { id: '2', title: 'Posto Shell', category: 'Transporte', date: 'Ontem', timestamp: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: -220.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte'), notes: 'Tanque cheio para viagem.' },
+  { id: '1', title: 'Restaurante Gourmet', category: 'Alimentação', date: 'Hoje', timestamp: new Date().toISOString().split('T')[0], amount: -85.00, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Jantar com a família no final de semana.', imageUrl: 'https://picsum.photos/seed/food1/400/600' },
+  { id: '2', title: 'Posto Shell', category: 'Transporte', date: 'Ontem', timestamp: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: -220.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte'), notes: 'Tanque cheio para viagem.', imageUrl: 'https://picsum.photos/seed/gas1/400/600' },
   { id: '3', title: 'Salário Mensal', category: 'Receita', date: '05 Out', timestamp: '2025-10-05', amount: 4340.00, type: 'income', method: 'Fixed', icon: getCategoryIcon('Receita'), notes: 'Pagamento referente ao mês de Setembro.' },
-  { id: '4', title: 'Mercado Central', category: 'Alimentação', date: '04 Out', timestamp: '2025-10-04', amount: -320.50, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Compras do mês.' },
+  { id: '4', title: 'Mercado Central', category: 'Alimentação', date: '04 Out', timestamp: '2025-10-04', amount: -320.50, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Compras do mês.', imageUrl: 'https://picsum.photos/seed/grocery1/400/600' },
   { id: '5', title: 'Aluguel Outubro', category: 'Moradia', date: '01 Out', timestamp: '2025-10-01', amount: -1800.00, type: 'expense', method: 'Fixed', icon: getCategoryIcon('Moradia'), notes: 'Aluguel do apartamento.' },
   { id: '6', title: 'Netflix', category: 'Lazer', date: '28 Set', timestamp: '2025-09-28', amount: -55.90, type: 'expense', method: 'Fixed', icon: getCategoryIcon('Lazer') },
   { id: '7', title: 'Uber Viagem', category: 'Transporte', date: '27 Set', timestamp: '2025-09-27', amount: -32.40, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte') },
@@ -368,6 +370,29 @@ export default function App() {
     currentPage * itemsPerPage
   );
 
+  const groupedTransactions = useMemo(() => {
+    const groups: { [key: string]: Transaction[] } = {};
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    paginatedTransactions.forEach(tr => {
+      let dateLabel = tr.timestamp;
+      if (tr.timestamp === today) dateLabel = 'Hoje';
+      else if (tr.timestamp === yesterday) dateLabel = 'Ontem';
+      else {
+        const [year, month, day] = tr.timestamp.split('-');
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        dateLabel = `${day} ${months[parseInt(month) - 1]}`;
+      }
+
+      if (!groups[dateLabel]) {
+        groups[dateLabel] = [];
+      }
+      groups[dateLabel].push(tr);
+    });
+    return groups;
+  }, [paginatedTransactions]);
+
   // Reset to first page when transactions or filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -413,11 +438,11 @@ export default function App() {
       setIsOCRProcessing(false);
       
       const mockReceipts = [
-        { rawTitle: 'R3ST4UR4NT3 S4B0R', rawAmount: -65.0, suggestedTitle: 'Restaurante Sabor', suggestedAmount: -65.00 },
-        { rawTitle: 'P0ST0 1P1R4NG4', rawAmount: -180.0, suggestedTitle: 'Posto Ipiranga', suggestedAmount: -180.00 },
-        { rawTitle: '4M4Z0N PR1M3', rawAmount: -14.9, suggestedTitle: 'Amazon Prime', suggestedAmount: -14.90 },
-        { rawTitle: 'M3RC4D0 L1QU1D0', rawAmount: -245.3, suggestedTitle: 'Mercado Líquido', suggestedAmount: -245.30 },
-        { rawTitle: 'UB3R TR1P', rawAmount: -28.5, suggestedTitle: 'Uber Trip', suggestedAmount: -28.50 },
+        { rawTitle: 'R3ST4UR4NT3 S4B0R', rawAmount: -65.0, suggestedTitle: 'Restaurante Sabor', suggestedAmount: -65.00, imageUrl: 'https://picsum.photos/seed/food/400/600' },
+        { rawTitle: 'P0ST0 1P1R4NG4', rawAmount: -180.0, suggestedTitle: 'Posto Ipiranga', suggestedAmount: -180.00, imageUrl: 'https://picsum.photos/seed/gas/400/600' },
+        { rawTitle: '4M4Z0N PR1M3', rawAmount: -14.9, suggestedTitle: 'Amazon Prime', suggestedAmount: -14.90, imageUrl: 'https://picsum.photos/seed/tech/400/600' },
+        { rawTitle: 'M3RC4D0 L1QU1D0', rawAmount: -245.3, suggestedTitle: 'Mercado Líquido', suggestedAmount: -245.30, imageUrl: 'https://picsum.photos/seed/grocery/400/600' },
+        { rawTitle: 'UB3R TR1P', rawAmount: -28.5, suggestedTitle: 'Uber Trip', suggestedAmount: -28.50, imageUrl: 'https://picsum.photos/seed/car/400/600' },
       ];
       
       const receipt = mockReceipts[Math.floor(Math.random() * mockReceipts.length)];
@@ -428,7 +453,8 @@ export default function App() {
         category: category, 
         amount: receipt.suggestedAmount,
         rawTitle: receipt.rawTitle,
-        rawAmount: receipt.rawAmount
+        rawAmount: receipt.rawAmount,
+        imageUrl: receipt.imageUrl
       });
     }, 2500);
   };
@@ -462,7 +488,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  const handleAddTransaction = (title: string, amount: number, category: string, date: string, formattedDate: string, type: 'income' | 'expense', id?: string, method: 'OCR' | 'Manual' | 'Fixed' = 'Manual', predicted: boolean = false, notes?: string) => {
+  const handleAddTransaction = (title: string, amount: number, category: string, date: string, formattedDate: string, type: 'income' | 'expense', id?: string, method: 'OCR' | 'Manual' | 'Fixed' = 'Manual', predicted: boolean = false, notes?: string, imageUrl?: string) => {
     if (id) {
       // Update existing
       const oldTr = transactions.find(t => t.id === id);
@@ -487,7 +513,8 @@ export default function App() {
         type,
         icon: getCategoryIcon(category),
         predicted: false,
-        notes: notes || oldTr.notes
+        notes: notes || oldTr.notes,
+        imageUrl: imageUrl || oldTr.imageUrl
       };
 
       setTransactions(prev => prev.map(t => t.id === id ? updatedTransaction : t));
@@ -512,7 +539,8 @@ export default function App() {
         method,
         icon: getCategoryIcon(category),
         predicted,
-        notes
+        notes,
+        imageUrl
       };
       setTransactions([newTransaction, ...transactions]);
       if (type === 'expense') {
@@ -634,20 +662,33 @@ export default function App() {
       {/* Transaction Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="modal-overlay">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingTransaction(null);
+              }}
               className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) {
+                  setIsModalOpen(false);
+                  setEditingTransaction(null);
+                }
+              }}
+              className="modal-content"
             >
+              <div className="modal-handle" />
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-text-primary">
                   {editingTransaction ? 'Editar Transação' : (modalType === 'income' ? 'Adicionar Receita' : 'Adicionar Despesa')}
@@ -672,6 +713,7 @@ export default function App() {
                 const dateInput = formData.get('date') as string;
                 const type = formData.get('type') as 'income' | 'expense';
                 const notes = formData.get('notes') as string;
+                const imageUrl = formData.get('imageUrl') as string;
                 
                 let formattedDate = editingTransaction?.date || 'Hoje';
                 if (dateInput) {
@@ -681,7 +723,7 @@ export default function App() {
                 }
 
                 if (title && amount > 0) {
-                  handleAddTransaction(title, amount, category, dateInput, formattedDate, type, editingTransaction?.id, 'Manual', false, notes);
+                  handleAddTransaction(title, amount, category, dateInput, formattedDate, type, editingTransaction?.id, 'Manual', false, notes, imageUrl);
                   setIsModalOpen(false);
                 }
               }} className="space-y-5">
@@ -695,7 +737,7 @@ export default function App() {
                     title="O título não pode estar vazio"
                     defaultValue={editingTransaction?.title || ''}
                     placeholder="Ex: Salário, Aluguel, Mercado..."
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -710,7 +752,7 @@ export default function App() {
                       required
                       defaultValue={editingTransaction ? Math.abs(editingTransaction.amount) : ''}
                       placeholder="0,00"
-                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                     />
                   </div>
 
@@ -719,7 +761,7 @@ export default function App() {
                     <select 
                       name="type"
                       defaultValue={editingTransaction?.type || modalType}
-                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                     >
                       <option value="income">Receita</option>
                       <option value="expense">Despesa</option>
@@ -734,7 +776,7 @@ export default function App() {
                     type="date"
                     defaultValue={editingTransaction?.timestamp || new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors [color-scheme:light]"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors [color-scheme:light] shadow-sm"
                   />
                 </div>
 
@@ -743,7 +785,7 @@ export default function App() {
                   <select 
                     name="category"
                     defaultValue={editingTransaction?.category || (modalType === 'income' ? 'Receita' : 'Alimentação')}
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   >
                     <option value="Receita">Receita</option>
                     <option value="Alimentação">Alimentação</option>
@@ -769,8 +811,22 @@ export default function App() {
                     defaultValue={editingTransaction?.notes || ''}
                     placeholder="Adicione detalhes extras..."
                     rows={2}
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors resize-none"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors resize-none shadow-sm"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-text-dim uppercase tracking-wider ml-1">Imagem do Recibo (URL)</label>
+                  <div className="relative">
+                    <input 
+                      name="imageUrl"
+                      type="url"
+                      defaultValue={editingTransaction?.imageUrl || ''}
+                      placeholder="https://exemplo.com/imagem.jpg"
+                      className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 pl-10 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
+                    />
+                    <Camera size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-accent" />
+                  </div>
                 </div>
 
                 <button 
@@ -790,7 +846,7 @@ export default function App() {
 
         {/* Manual OCR Modal */}
         {isManualOCRModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="modal-overlay">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -799,11 +855,18 @@ export default function App() {
               className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setIsManualOCRModalOpen(false);
+              }}
+              className="modal-content"
             >
+              <div className="modal-handle" />
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold flex items-center gap-2 text-text-primary">
                   <FileText size={20} className="text-accent" />
@@ -847,7 +910,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     placeholder="Ex: STARBUCKS COFFEE, MERCADO EXTRA..."
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -860,7 +923,7 @@ export default function App() {
                     min="0.01"
                     required
                     placeholder="0,00"
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -878,7 +941,7 @@ export default function App() {
 
         {/* OCR Result Modal */}
         {ocrResult && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="modal-overlay">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -887,11 +950,18 @@ export default function App() {
               className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setOcrResult(null);
+              }}
+              className="modal-content"
             >
+              <div className="modal-handle" />
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-text-primary">Confirmar Transação</h3>
                 <button 
@@ -904,6 +974,17 @@ export default function App() {
               <p className="text-sm text-text-dim mb-6">
                 A IA analisou o recibo e sugeriu os seguintes ajustes. Verifique antes de salvar.
               </p>
+              
+              {ocrResult.imageUrl && (
+                <div className="mb-6 rounded-xl overflow-hidden border border-glass-border shadow-sm">
+                  <img 
+                    src={ocrResult.imageUrl} 
+                    alt="Recibo Escaneado" 
+                    className="w-full h-40 object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
               
               {ocrResult.rawTitle && ocrResult.rawAmount !== undefined && (
                 <div className="mb-6 p-4 bg-bg-base/50 rounded-xl border border-glass-border">
@@ -920,7 +1001,7 @@ export default function App() {
                 const category = formData.get('category') as string;
                 
                 if (title && amount > 0) {
-                  handleAddTransaction(title, amount, category, new Date().toISOString().split('T')[0], 'Agora', 'expense', undefined, 'OCR', true);
+                  handleAddTransaction(title, amount, category, new Date().toISOString().split('T')[0], 'Agora', 'expense', undefined, 'OCR', true, undefined, ocrResult.imageUrl);
                   setOcrResult(null);
                 }
               }} className="space-y-5">
@@ -933,7 +1014,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     defaultValue={ocrResult.title}
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -947,7 +1028,7 @@ export default function App() {
                       min="0.01"
                       required
                       defaultValue={Math.abs(ocrResult.amount)}
-                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                     />
                   </div>
 
@@ -956,7 +1037,7 @@ export default function App() {
                     <select 
                       name="category"
                       defaultValue={ocrResult.category}
-                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                     >
                       {CATEGORIES.map(cat => (
                         <option key={cat.name} value={cat.name}>{cat.name}</option>
@@ -979,7 +1060,7 @@ export default function App() {
 
         {/* Goal Modal */}
         {isGoalModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="modal-overlay">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -988,11 +1069,18 @@ export default function App() {
               className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setIsGoalModalOpen(false);
+              }}
+              className="modal-content"
             >
+              <div className="modal-handle" />
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-text-primary">Nova Meta</h3>
                 <button 
@@ -1024,7 +1112,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     placeholder="Ex: Viagem, Carro Novo, Reserva..."
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -1037,7 +1125,7 @@ export default function App() {
                     min="0.01"
                     required
                     placeholder="0,00"
-                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors shadow-sm"
                   />
                 </div>
 
@@ -1046,13 +1134,13 @@ export default function App() {
                   <input 
                     name="dueDate"
                     type="date"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors [color-scheme:dark]"
+                    className="w-full bg-white border border-accent/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors [color-scheme:light] shadow-sm"
                   />
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-4 rounded-xl font-bold text-bg bg-accent-liquid shadow-lg shadow-accent-liquid/20 hover:shadow-accent-liquid/40 transition-all"
+                  className="w-full py-4 rounded-xl font-bold text-white bg-accent-liquid shadow-lg shadow-accent-liquid/20 hover:shadow-accent-liquid/40 transition-all"
                 >
                   CRIAR META
                 </button>
@@ -1063,7 +1151,7 @@ export default function App() {
 
         {/* Delete Confirmation Modal */}
         {isDeleteConfirmOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="modal-overlay">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1072,11 +1160,18 @@ export default function App() {
               className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm glass-panel p-8 shadow-2xl border-danger/20"
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setIsDeleteConfirmOpen(false);
+              }}
+              className="modal-content max-w-sm border-danger/20"
             >
+              <div className="modal-handle" />
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
                   <AlertTriangle size={32} />
@@ -1111,14 +1206,15 @@ export default function App() {
       <div className="floating-orb w-[600px] h-[600px] -top-[300px] -left-[300px]"></div>
       <div className="floating-orb w-[500px] h-[500px] -bottom-[250px] -right-[250px] [animation-delay:5s]"></div>
 
-      <div className={`app-container grid gap-6 p-6 max-w-[1600px] mx-auto h-screen transition-all duration-500
+      <div className={`app-container grid gap-6 p-4 lg:p-6 max-w-[1600px] mx-auto h-screen transition-all duration-500
         grid-cols-1 
         lg:grid-cols-[280px_1fr] 
         ${activeView === 'Dashboard' ? 'xl:grid-cols-[280px_1fr_350px]' : 'xl:grid-cols-[280px_1fr]'}
+        pb-24 lg:pb-6
       `}>
         
-        {/* Sidebar */}
-        <aside className="sidebar flex flex-col gap-10 lg:row-span-2">
+        {/* Sidebar - Hidden on mobile */}
+        <aside className="sidebar hidden lg:flex flex-col gap-10 lg:row-span-2">
           <div className="logo text-2xl font-extrabold tracking-tighter flex items-center gap-3 text-text-primary">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent-liquid shadow-[0_4px_12px_rgba(99,102,241,0.3)] flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
@@ -1177,9 +1273,24 @@ export default function App() {
           </div>
         </aside>
 
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between mb-2">
+          <div className="logo text-xl font-extrabold tracking-tighter flex items-center gap-2 text-text-primary">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-accent-liquid shadow-[0_4px_12px_rgba(99,102,241,0.3)] flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 32 32" fill="none">
+                <path d="M16 8V24M10 14L16 8L22 14" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            PUR FINANCE
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/50 backdrop-blur-md border border-glass-border flex items-center justify-center overflow-hidden shadow-lg">
+            <img src="https://picsum.photos/seed/user/100/100" alt="Avatar" className="w-full h-full object-cover" />
+          </div>
+        </div>
+
         {/* Main Content Area */}
-        <div className={`main-content-area ${activeView === 'Dashboard' ? 'contents' : 'lg:col-start-2 lg:row-span-2 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-glass-border'}`}>
-          <main className={`main-content flex flex-col gap-6 ${activeView === 'Dashboard' ? 'lg:col-start-2 lg:row-start-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-glass-border' : ''}`}>
+        <div className={`main-content-area ${activeView === 'Dashboard' ? 'contents' : 'lg:col-start-2 lg:row-span-2 flex flex-col gap-6 lg:overflow-y-auto pr-0 lg:pr-2 scrollbar-thin scrollbar-thumb-glass-border'}`}>
+          <main className={`main-content flex flex-col gap-6 ${activeView === 'Dashboard' ? 'lg:col-start-2 lg:row-start-1 lg:overflow-y-auto pr-0 lg:pr-2 scrollbar-thin scrollbar-thumb-glass-border' : ''}`}>
           <AnimatePresence mode="wait">
             {activeView === 'Dashboard' && (
               <motion.div 
@@ -1189,27 +1300,27 @@ export default function App() {
                 exit={{ opacity: 0, x: -20 }}
                 className="flex flex-col gap-6"
               >
-                <div className="glass-panel p-7 flex justify-between items-center bg-gradient-to-br from-accent-primary/15 to-accent-secondary/15 border-accent-primary/30">
-                  <div className="balance-info">
+                <div className="glass-panel p-6 lg:p-7 flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-br from-accent/10 to-accent-liquid/10 border-accent/20 gap-6">
+                  <div className="balance-info w-full lg:w-auto">
                     <span className="text-[0.75rem] uppercase tracking-[1.5px] text-text-dim mb-2 block">Saldo Disponível</span>
-                    <h1 className="text-5xl font-mono font-semibold tracking-tighter">R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h1>
+                    <h1 className="text-4xl lg:text-5xl font-mono font-semibold tracking-tighter text-text-primary">R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h1>
                     <p className="text-sm text-success mt-2.5 flex items-center gap-1">
                       <TrendingUp size={14} /> 12% em relação ao mês anterior
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left lg:text-right w-full lg:w-auto border-t lg:border-t-0 border-glass-border pt-4 lg:pt-0">
                     <span className="text-[0.75rem] uppercase tracking-[1.5px] text-text-dim mb-2 block">Economia do Mês</span>
-                    <div className="text-4xl font-mono font-semibold text-accent-liquid">56%</div>
+                    <div className="text-3xl lg:text-4xl font-mono font-semibold text-accent-liquid">56%</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
                   <StatCard label="Receitas" value={`R$ ${income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} color="text-success" />
                   <StatCard label="Despesas" value={`R$ ${expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} color="text-danger" />
-                  <StatCard label="Meta Mensal" value="R$ 5.000,00" color="text-accent-primary" />
+                  <StatCard label="Meta Mensal" value="R$ 5.000,00" color="text-accent" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
                   <ActionButton icon={<Camera size={24} />} label="ESCANEAR RECIBO (OCR)" onClick={handleOCR} />
                   <ActionButton icon={<FileText size={24} />} label="ENTRADA MANUAL OCR" onClick={() => setIsManualOCRModalOpen(true)} />
                   <ActionButton icon={<Wallet size={24} />} label="NOVA DESPESA MANUAL" onClick={handleManualExpense} />
@@ -1217,9 +1328,9 @@ export default function App() {
 
                 <div className="glass-panel p-7">
                   <div className="flex justify-between items-center mb-5">
-                    <h2 className="text-lg font-semibold text-white">Últimas Transações</h2>
+                    <h2 className="text-lg font-semibold text-text-primary">Últimas Transações</h2>
                     <span 
-                      className="text-xs text-accent-liquid cursor-pointer hover:underline"
+                      className="text-xs text-accent-liquid cursor-pointer hover:underline font-bold uppercase tracking-wider"
                       onClick={() => setActiveView('Transações')}
                     >
                       Ver tudo
@@ -1256,30 +1367,42 @@ export default function App() {
                 className="flex flex-col gap-6"
               >
                 <div className="glass-panel p-7">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">Histórico de Transações</h2>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-8 bg-accent rounded-full hidden sm:block" />
+                      <div>
+                        <h2 className="text-2xl font-bold text-text-primary tracking-tight">Histórico</h2>
+                        <p className="text-xs text-text-dim uppercase tracking-widest font-bold">Transações</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setIsOCRProcessing(true);
+                          setTimeout(() => setIsOCRProcessing(false), 1000);
+                        }}
+                        className="ml-2 p-2 rounded-xl bg-white/5 border border-white/10 text-accent hover:bg-white/10 transition-all active:scale-95"
+                      >
+                        <RefreshCw size={18} className={isOCRProcessing ? 'animate-spin' : ''} />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
                       <button 
                         onClick={() => { setModalType('income'); setIsModalOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-success/10 text-success border border-success/20 hover:bg-success/20 transition-all text-sm font-semibold"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-success/10 text-success border border-success/20 hover:bg-success/20 transition-all text-xs font-bold whitespace-nowrap"
                       >
-                        <Plus size={16} /> ADICIONAR RECEITA <FileText size={16} />
+                        <Plus size={14} /> RECEITA
                       </button>
                       <button 
                         onClick={() => { setModalType('expense'); setIsModalOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20 transition-all text-sm font-semibold"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20 transition-all text-xs font-bold whitespace-nowrap"
                       >
-                        <Plus size={16} /> ADICIONAR DESPESA <FileText size={16} />
+                        <Plus size={14} /> DESPESA
                       </button>
                       <button 
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm font-semibold"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-accent/10 text-text-primary hover:bg-bg-base transition-all text-xs font-bold whitespace-nowrap shadow-sm"
                       >
-                        <Download size={16} /> EXPORTAR CSV
+                        <Download size={14} /> CSV
                       </button>
-                      <div className="text-sm text-text-dim">
-                        Exibindo {paginatedTransactions.length} de {filteredTransactions.length} transações
-                      </div>
                     </div>
                   </div>
 
@@ -1293,7 +1416,7 @@ export default function App() {
                       <select 
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="bg-bg border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-liquid/50 min-w-[140px] appearance-none cursor-pointer hover:bg-white/5 transition-colors"
+                        className="bg-white border border-accent/10 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-liquid/50 min-w-[140px] appearance-none cursor-pointer hover:bg-bg-base transition-colors"
                       >
                         <option value="Todas">Todas</option>
                         <option value="Alimentação">Alimentação</option>
@@ -1321,7 +1444,7 @@ export default function App() {
                       <select 
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value as any)}
-                        className="bg-bg border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-liquid/50 min-w-[120px] appearance-none cursor-pointer hover:bg-white/5 transition-colors"
+                        className="bg-white border border-accent/10 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-liquid/50 min-w-[120px] appearance-none cursor-pointer hover:bg-bg-base transition-colors"
                       >
                         <option value="all">Todos</option>
                         <option value="income">Receitas (Income)</option>
@@ -1337,7 +1460,7 @@ export default function App() {
                       <select 
                         value={filterMethod}
                         onChange={(e) => setFilterMethod(e.target.value)}
-                        className="bg-bg border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-liquid/50 min-w-[120px] appearance-none cursor-pointer hover:bg-white/5 transition-colors"
+                        className="bg-white border border-accent/10 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-liquid/50 min-w-[120px] appearance-none cursor-pointer hover:bg-bg-base transition-colors"
                       >
                         <option value="Todos">Todos</option>
                         <option value="OCR">OCR</option>
@@ -1356,14 +1479,14 @@ export default function App() {
                           type="date"
                           value={filterStartDate}
                           onChange={(e) => setFilterStartDate(e.target.value)}
-                          className="bg-bg border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-accent-liquid/50 [color-scheme:dark] cursor-pointer hover:bg-white/5 transition-colors"
+                          className="bg-white border border-accent/10 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-liquid/50 cursor-pointer hover:bg-bg-base transition-colors"
                         />
                         <span className="text-text-dim text-sm">até</span>
                         <input 
                           type="date"
                           value={filterEndDate}
                           onChange={(e) => setFilterEndDate(e.target.value)}
-                          className="bg-bg border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-accent-liquid/50 [color-scheme:dark] cursor-pointer hover:bg-white/5 transition-colors"
+                          className="bg-white border border-accent/10 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-liquid/50 cursor-pointer hover:bg-bg-base transition-colors"
                         />
                       </div>
                       <div className="flex items-center gap-2 mt-1">
@@ -1375,7 +1498,7 @@ export default function App() {
                             setFilterStartDate(last7Days.toISOString().split('T')[0]);
                             setFilterEndDate(today.toISOString().split('T')[0]);
                           }}
-                          className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-text-dim hover:text-white transition-colors border border-white/10"
+                          className="text-[10px] px-2 py-1 rounded bg-white hover:bg-bg-base text-text-dim hover:text-text-primary transition-colors border border-accent/10 shadow-sm"
                         >
                           Últimos 7 dias
                         </button>
@@ -1386,7 +1509,7 @@ export default function App() {
                             setFilterStartDate(firstDayOfMonth.toISOString().split('T')[0]);
                             setFilterEndDate(today.toISOString().split('T')[0]);
                           }}
-                          className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-text-dim hover:text-white transition-colors border border-white/10"
+                          className="text-[10px] px-2 py-1 rounded bg-white hover:bg-bg-base text-text-dim hover:text-text-primary transition-colors border border-accent/10 shadow-sm"
                         >
                           Este Mês
                         </button>
@@ -1397,7 +1520,7 @@ export default function App() {
                             setFilterStartDate(firstDayOfYear.toISOString().split('T')[0]);
                             setFilterEndDate(today.toISOString().split('T')[0]);
                           }}
-                          className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-text-dim hover:text-white transition-colors border border-white/10"
+                          className="text-[10px] px-2 py-1 rounded bg-accent/5 hover:bg-accent hover:text-white text-text-dim transition-all border border-accent/10 font-bold shadow-sm"
                         >
                           Este Ano
                         </button>
@@ -1406,7 +1529,7 @@ export default function App() {
 
                     <div className="flex flex-col gap-2 flex-grow">
                       <label className="flex items-center gap-2 text-[10px] font-bold text-text-dim uppercase tracking-wider ml-1">
-                        <Search size={12} className="text-accent-liquid" />
+                        <Search size={12} className="text-accent" />
                         Busca (Data / Título / ID)
                       </label>
                       <div className="flex gap-2">
@@ -1417,7 +1540,7 @@ export default function App() {
                             placeholder="Data ou nome..."
                             value={filterSearch}
                             onChange={(e) => setFilterSearch(e.target.value)}
-                            className="bg-bg border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-accent-liquid/50 w-full"
+                            className="bg-white border border-accent/10 rounded-xl pl-10 pr-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50 w-full hover:bg-bg-base transition-all shadow-sm"
                           />
                         </div>
                         <div className="relative w-[150px]">
@@ -1427,7 +1550,7 @@ export default function App() {
                             placeholder="ID..."
                             value={filterId}
                             onChange={(e) => setFilterId(e.target.value)}
-                            className="bg-bg border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-accent-liquid/50 w-full"
+                            className="bg-white border border-accent/10 rounded-xl pl-10 pr-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50 w-full hover:bg-bg-base transition-all shadow-sm"
                           />
                         </div>
                         {(filterCategory !== 'Todas' || filterType !== 'all' || filterMethod !== 'Todos' || filterStartDate || filterEndDate || filterSearch || filterId) && (
@@ -1441,7 +1564,7 @@ export default function App() {
                               setFilterSearch('');
                               setFilterId('');
                             }}
-                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white transition-colors whitespace-nowrap flex items-center gap-2"
+                            className="px-4 py-2 bg-accent/10 hover:bg-accent text-accent hover:text-white border border-accent/10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 shadow-sm"
                           >
                             <X size={14} />
                             Limpar Filtros
@@ -1451,40 +1574,81 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-[100px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-white/10 text-[10px] font-bold text-text-dim uppercase tracking-wider mb-2">
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('date')}>
+                  <div className="hidden lg:grid grid-cols-[100px_1fr_120px_120px_100px_100px] gap-4 px-6 py-4 border-b border-accent/10 text-[10px] font-bold text-text-dim uppercase tracking-widest mb-2 bg-bg-base/50 rounded-t-2xl">
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-accent transition-colors" onClick={() => handleSort('date')}>
                       Data {sortField === 'date' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                     </div>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('title')}>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-accent transition-colors" onClick={() => handleSort('title')}>
                       Título {sortField === 'title' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                     </div>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('category')}>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-accent transition-colors" onClick={() => handleSort('category')}>
                       Categoria {sortField === 'category' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                     </div>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors justify-end" onClick={() => handleSort('amount')}>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-accent transition-colors justify-end" onClick={() => handleSort('amount')}>
                       Valor {sortField === 'amount' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                     </div>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors justify-center" onClick={() => handleSort('method')}>
-                      Método de Pagamento {sortField === 'method' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-accent transition-colors justify-center" onClick={() => handleSort('method')}>
+                      Método {sortField === 'method' && (sortDirection === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                     </div>
-                    <div className="flex justify-end">Ações</div>
+                    <div className="flex justify-end pr-2">Ações</div>
                   </div>
 
-                  <div className="flex flex-col gap-1 min-h-[600px]">
+                  <div className="flex flex-col gap-1 min-h-[400px]">
                     <AnimatePresence mode="popLayout">
-                      {paginatedTransactions.map((tr) => (
-                        <div key={tr.id}>
-                          <TransactionRow 
-                            tr={tr} 
-                            onEdit={(tr) => {
-                              setEditingTransaction(tr);
-                              setModalType(tr.type);
-                              setIsModalOpen(true);
+                      {Object.keys(groupedTransactions).length > 0 ? (
+                        Object.entries(groupedTransactions).map(([date, items]) => {
+                          const transactionItems = items as Transaction[];
+                          return (
+                            <div key={date} className="flex flex-col gap-1">
+                              <div className="sticky-header">
+                                <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{date}</span>
+                                <span className="text-[10px] font-bold text-text-dim uppercase tracking-widest">
+                                  {transactionItems.length} {transactionItems.length === 1 ? 'Transação' : 'Transações'}
+                                </span>
+                              </div>
+                              {transactionItems.map((tr) => (
+                                <div key={tr.id}>
+                                  <TransactionRow 
+                                    tr={tr} 
+                                    onEdit={(tr) => {
+                                      setEditingTransaction(tr);
+                                      setModalType(tr.type);
+                                      setIsModalOpen(true);
+                                    }}
+                                    onDelete={(id) => handleDeleteTransaction(id)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col items-center justify-center py-20 text-center"
+                        >
+                          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-text-dim mb-4 border border-white/10">
+                            <Search size={32} />
+                          </div>
+                          <h3 className="text-xl font-bold text-text-primary mb-2">Nenhuma transação encontrada</h3>
+                          <p className="text-text-dim text-sm max-w-[250px]">Tente ajustar seus filtros ou faça uma nova busca.</p>
+                          <button 
+                            onClick={() => {
+                              setFilterCategory('Todas');
+                              setFilterType('all');
+                              setFilterMethod('Todos');
+                              setFilterStartDate('');
+                              setFilterEndDate('');
+                              setFilterSearch('');
+                              setFilterId('');
                             }}
-                            onDelete={(id) => handleDeleteTransaction(id)}
-                          />
-                        </div>
-                      ))}
+                            className="mt-6 px-6 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:shadow-lg hover:shadow-accent/20 transition-all"
+                          >
+                            LIMPAR FILTROS
+                          </button>
+                        </motion.div>
+                      )}
                     </AnimatePresence>
                   </div>
 
@@ -1498,7 +1662,7 @@ export default function App() {
                           setItemsPerPage(Number(e.target.value));
                           setCurrentPage(1);
                         }}
-                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent-liquid/50 appearance-none cursor-pointer hover:bg-white/10 transition-colors"
+                        className="bg-white border border-accent/10 rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent-liquid/50 appearance-none cursor-pointer hover:bg-bg-base transition-colors shadow-sm"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -1510,7 +1674,7 @@ export default function App() {
                       <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+                        className="p-2 rounded-xl bg-white border border-accent/10 text-text-primary disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-base transition-colors shadow-sm"
                       >
                         <ChevronLeft size={20} />
                       </button>
@@ -1520,10 +1684,10 @@ export default function App() {
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`w-10 h-10 rounded-xl border transition-all font-mono text-sm ${
+                            className={`w-10 h-10 rounded-xl border transition-all font-mono text-sm shadow-sm ${
                               currentPage === page 
-                                ? 'bg-accent-liquid border-accent-liquid text-bg shadow-[0_0_15px_rgba(34,211,238,0.3)]' 
-                                : 'bg-white/5 border-white/10 text-text-dim hover:text-white hover:bg-white/10'
+                                ? 'bg-accent-liquid border-accent-liquid text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]' 
+                                : 'bg-white border-accent/10 text-text-dim hover:text-text-primary hover:bg-bg-base'
                             }`}
                           >
                             {page}
@@ -1534,7 +1698,7 @@ export default function App() {
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+                        className="p-2 rounded-xl bg-white border border-accent/10 text-text-primary disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-base transition-colors shadow-sm"
                       >
                         <ChevronRight size={20} />
                       </button>
@@ -1563,13 +1727,13 @@ export default function App() {
                       <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                         <button 
                           onClick={() => setPlanningTab('active')}
-                          className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${planningTab === 'active' ? 'bg-accent-liquid text-bg shadow-lg shadow-accent-liquid/20' : 'text-text-dim hover:text-white'}`}
+                          className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${planningTab === 'active' ? 'bg-accent-liquid text-white shadow-lg shadow-accent-liquid/20' : 'text-text-dim hover:text-accent'}`}
                         >
                           Ativas
                         </button>
                         <button 
                           onClick={() => setPlanningTab('history')}
-                          className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${planningTab === 'history' ? 'bg-accent-liquid text-bg shadow-lg shadow-accent-liquid/20' : 'text-text-dim hover:text-white'}`}
+                          className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${planningTab === 'history' ? 'bg-accent-liquid text-white shadow-lg shadow-accent-liquid/20' : 'text-text-dim hover:text-accent'}`}
                         >
                           Histórico
                         </button>
@@ -1583,8 +1747,8 @@ export default function App() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="p-6 rounded-3xl bg-white/5 border border-white/10">
-                      <h3 className="text-lg font-semibold mb-4">
+                    <div className="p-6 rounded-3xl bg-white border border-accent/10 shadow-sm">
+                      <h3 className="text-lg font-semibold mb-4 text-text-primary">
                         {planningTab === 'active' ? 'Metas de Economia' : 'Metas Concluídas'}
                       </h3>
                       <div className="space-y-6">
@@ -1605,9 +1769,9 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                    <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col gap-6">
+                    <div className="p-6 rounded-3xl bg-white border border-accent/10 shadow-sm flex flex-col gap-6">
                       <div>
-                        <h3 className="text-lg font-semibold mb-4">Gastos por Categoria</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-text-primary">Gastos por Categoria</h3>
                         <div className="h-[250px] w-full mb-6">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -1629,8 +1793,8 @@ export default function App() {
                               </Pie>
                               <Tooltip 
                                 formatter={(value: number) => `R$ ${value.toFixed(2)}`}
-                                contentStyle={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                itemStyle={{ color: '#fff' }}
+                                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                                itemStyle={{ color: '#1e293b' }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -1665,8 +1829,8 @@ export default function App() {
                               </Pie>
                               <Tooltip 
                                 formatter={(value: number) => `R$ ${value.toFixed(2)}`}
-                                contentStyle={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                itemStyle={{ color: '#fff' }}
+                                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                                itemStyle={{ color: '#1e293b' }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -1703,7 +1867,7 @@ export default function App() {
                           key={p}
                           onClick={() => setReportPeriod(p)}
                           className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                            reportPeriod === p ? 'bg-accent-liquid text-bg shadow-lg' : 'text-text-dim hover:text-white'
+                            reportPeriod === p ? 'bg-accent-liquid text-white shadow-lg' : 'text-text-dim hover:text-text-primary'
                           }`}
                         >
                           {p === 'weekly' ? 'Semanal' : p === 'monthly' ? 'Mensal' : 'Anual'}
@@ -1775,7 +1939,7 @@ export default function App() {
                               key={m}
                               onClick={() => setCashFlowMonths(m)}
                               className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                cashFlowMonths === m ? 'bg-accent-liquid text-bg' : 'text-text-dim hover:text-white'
+                                cashFlowMonths === m ? 'bg-accent-liquid text-white' : 'text-text-dim hover:text-text-primary'
                               }`}
                             >
                               {m}M
@@ -1907,25 +2071,25 @@ export default function App() {
                       <h3 className="text-sm font-semibold text-text-dim mb-4 uppercase tracking-wider">Gastos Diários da Semana</h3>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={REPORT_DATA.weekly}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                           <XAxis 
                             dataKey="name" 
-                            stroke="rgba(255,255,255,0.3)" 
+                            stroke="rgba(0,0,0,0.3)" 
                             fontSize={12} 
                             tickLine={false} 
                             axisLine={false}
                           />
                           <YAxis 
-                            stroke="rgba(255,255,255,0.3)" 
+                            stroke="rgba(0,0,0,0.3)" 
                             fontSize={12} 
                             tickLine={false} 
                             axisLine={false}
                             tickFormatter={(value) => `R$${value}`}
                           />
                           <Tooltip 
-                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                            contentStyle={{ backgroundColor: '#05070a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                            itemStyle={{ fontSize: '11px' }}
+                            cursor={{ fill: 'rgba(99,102,241,0.05)' }}
+                            contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                            itemStyle={{ fontSize: '11px', color: '#1e293b' }}
                           />
                           <Legend verticalAlign="top" height={36} iconType="circle" />
                           <Bar dataKey="Alimentação" stackId="a" fill="#f43f5e" radius={[0, 0, 0, 0]} />
@@ -1968,14 +2132,14 @@ export default function App() {
           {activeView === 'Dashboard' && (
             <aside className={`right-panel xl:col-start-3 xl:row-start-1 lg:col-start-2 lg:row-start-2 grid grid-cols-1 xl:flex xl:flex-col lg:grid-cols-2 gap-6`}>
               <div className="glass-panel p-7">
-                <h2 className="text-lg font-semibold text-white mb-5">Próximas Contas</h2>
+                <h2 className="text-lg font-semibold text-text-primary mb-5">Próximas Contas</h2>
                 
                 <AlertCard 
                   title="VENCE EM 2 DIAS" 
                   label="Netflix Premium" 
                   value="R$ 55,90" 
                   color="border-danger" 
-                  titleColor="text-red-300" 
+                  titleColor="text-danger" 
                 />
 
                 <AlertCard 
@@ -1983,13 +2147,13 @@ export default function App() {
                   label="Aluguel Outubro" 
                   value="R$ 1.800,00" 
                   color="border-amber-500/20" 
-                  titleColor="text-amber-300" 
-                  bg="bg-amber-500/5"
+                  titleColor="text-amber-600" 
+                  bg="bg-amber-500/10"
                 />
               </div>
 
               <div className="glass-panel p-7 flex-grow">
-                <h2 className="text-lg font-semibold text-white mb-6">Gastos por Categoria</h2>
+                <h2 className="text-lg font-semibold text-text-primary mb-6">Gastos por Categoria</h2>
                 
                 <div className="flex flex-col gap-6">
                   {CATEGORY_SPENDING.map((cat) => {
@@ -2050,6 +2214,45 @@ export default function App() {
             </aside>
           )}
         </div>
+
+        {/* Bottom Navigation for Mobile */}
+        <nav className="bottom-nav">
+          <BottomNavItem 
+            icon={<LayoutDashboard size={22} />} 
+            label="Home" 
+            active={activeView === 'Dashboard'} 
+            onClick={() => setActiveView('Dashboard')}
+          />
+          <BottomNavItem 
+            icon={<Receipt size={22} />} 
+            label="Trans" 
+            active={activeView === 'Transações'} 
+            onClick={() => setActiveView('Transações')}
+          />
+          <div className="relative -top-6">
+            <button 
+              onClick={() => {
+                setModalType('expense');
+                setIsModalOpen(true);
+              }}
+              className="w-14 h-14 rounded-full bg-accent text-white shadow-[0_10px_20px_-5px_rgba(99,102,241,0.6)] flex items-center justify-center border-4 border-bg-base"
+            >
+              <Plus size={28} />
+            </button>
+          </div>
+          <BottomNavItem 
+            icon={<Calendar size={22} />} 
+            label="Plan" 
+            active={activeView === 'Planejamento'} 
+            onClick={() => setActiveView('Planejamento')}
+          />
+          <BottomNavItem 
+            icon={<Settings size={22} />} 
+            label="Config" 
+            active={activeView === 'Configurações'} 
+            onClick={() => setActiveView('Configurações')}
+          />
+        </nav>
       </div>
 
       {/* OCR Loader Overlay */}
@@ -2100,6 +2303,20 @@ function NavItem({ icon, label, active = false, onClick, rightIcon }: { icon: Re
   );
 }
 
+function BottomNavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`bottom-nav-item ${active ? 'active' : ''}`}
+    >
+      <div className="icon-container">
+        {icon}
+      </div>
+      <span className="text-[0.65rem] font-bold uppercase tracking-wider">{label}</span>
+    </button>
+  );
+}
+
 function TransactionRow({ tr, compact = false, onEdit, onDelete }: { 
   tr: Transaction, 
   compact?: boolean,
@@ -2108,106 +2325,174 @@ function TransactionRow({ tr, compact = false, onEdit, onDelete }: {
 }) {
   const config = CATEGORY_CONFIG[tr.category] || CATEGORY_CONFIG['Outros'];
   const Icon = config.icon;
+  const [isSwiped, setIsSwiped] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  const handleDragEnd = (event: any, info: any) => {
+    if (info.offset.x < -100) {
+      setIsSwiped(true);
+    } else {
+      setIsSwiped(false);
+    }
+  };
 
   if (compact) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between p-4 rounded-[20px] bg-bg-base/30 hover:bg-bg-base/50 border border-glass-border transition-all group cursor-pointer hover:-translate-x-1"
-      >
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-lg group-hover:scale-110 transition-transform`}>
-            <Icon size={20} />
+      <div className="relative overflow-hidden rounded-[20px] mb-2">
+        <div className="swipe-action-bg bg-danger/20">
+          <button 
+            onClick={() => onDelete?.(tr.id)}
+            className="w-12 h-12 rounded-2xl bg-danger text-white flex items-center justify-center shadow-lg"
+          >
+            <Trash2 size={20} />
+          </button>
+        </div>
+        <motion.div 
+          drag="x"
+          dragConstraints={{ left: -80, right: 0 }}
+          onDragEnd={handleDragEnd}
+          animate={{ x: isSwiped ? -80 : 0, opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: -20 }}
+          whileTap={{ scale: 0.98 }}
+          className="flex items-center justify-between p-4 rounded-[20px] bg-white hover:bg-bg-base border border-glass-border transition-all group cursor-pointer relative z-10 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-lg group-hover:scale-110 transition-transform overflow-hidden`}>
+              {tr.imageUrl && tr.imageUrl.trim() !== '' && !imgError ? (
+                <img 
+                  src={tr.imageUrl} 
+                  alt={tr.title} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <Icon size={20} />
+              )}
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-[0.95rem] text-text-primary truncate max-w-[120px] sm:max-w-none">{tr.title}</p>
+                {tr.predicted && (
+                  <span className="text-[0.5rem] px-1 py-0.2 rounded bg-accent/20 text-accent border border-accent/30 font-bold">
+                    SUGESTÃO
+                  </span>
+                )}
+              </div>
+              <p className="text-[0.75rem] text-text-secondary mt-0.5">{tr.date} • {tr.category}</p>
+            </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className={`font-mono text-right font-bold text-[0.9rem] sm:text-[1rem] ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
+              {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+            <div className="hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
+                className="p-2 rounded-xl bg-bg-base/50 hover:bg-bg-base text-accent transition-all"
+                title="Editar"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
+                className="p-2 rounded-xl bg-bg-base/50 hover:bg-danger/10 text-danger transition-all"
+                title="Excluir"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-[24px] mb-2">
+      <div className="swipe-action-bg bg-accent/10">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => onEdit?.(tr)}
+            className="w-12 h-12 rounded-2xl bg-accent text-white flex items-center justify-center shadow-lg"
+          >
+            <Edit2 size={20} />
+          </button>
+          <button 
+            onClick={() => onDelete?.(tr.id)}
+            className="w-12 h-12 rounded-2xl bg-danger text-white flex items-center justify-center shadow-lg"
+          >
+            <Trash2 size={20} />
+          </button>
+        </div>
+      </div>
+      <motion.div 
+        drag="x"
+        dragConstraints={{ left: -140, right: 0 }}
+        onDragEnd={handleDragEnd}
+        animate={{ x: isSwiped ? -140 : 0, opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: -20 }}
+        whileTap={{ scale: 0.98 }}
+        className="flex flex-col sm:grid sm:grid-cols-[100px_1fr_120px_120px_100px] lg:grid-cols-[100px_1fr_120px_120px_100px_100px] items-start sm:items-center p-5 rounded-[24px] bg-white/80 backdrop-blur-md hover:bg-white border border-glass-border transition-all group gap-4 cursor-pointer relative z-10 shadow-sm"
+      >
+        <div className="text-xs sm:text-sm text-text-secondary font-mono uppercase tracking-wider">{tr.date}</div>
+        <div className="flex items-center gap-4 w-full sm:w-auto overflow-hidden">
+          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-md group-hover:scale-110 transition-transform overflow-hidden`}>
+            {tr.imageUrl && tr.imageUrl.trim() !== '' && !imgError ? (
+              <img 
+                src={tr.imageUrl} 
+                alt={tr.title} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <Icon size={22} />
+            )}
+          </div>
+          <div className="flex flex-col overflow-hidden flex-1">
             <div className="flex items-center gap-2">
-              <p className="font-bold text-[0.95rem] text-text-primary">{tr.title}</p>
+              <p className="font-bold text-[1rem] text-text-primary truncate">{tr.title}</p>
               {tr.predicted && (
                 <span className="text-[0.5rem] px-1 py-0.2 rounded bg-accent/20 text-accent border border-accent/30 font-bold">
                   SUGESTÃO
                 </span>
               )}
             </div>
-            <p className="text-[0.75rem] text-text-secondary mt-0.5">{tr.date} • {tr.category}</p>
-            {tr.notes && <p className="text-[0.65rem] text-accent mt-0.5 italic truncate max-w-[150px]">{tr.notes}</p>}
+            {tr.notes && <p className="text-[0.75rem] text-accent italic truncate mt-0.5">{tr.notes}</p>}
+            <p className="text-[0.7rem] text-text-secondary mt-1 truncate sm:hidden">
+              {tr.category} • {tr.method || 'Manual'}
+            </p>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`font-mono text-right font-bold ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
+          <div className={`font-mono text-right font-bold text-[1.1rem] sm:hidden ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
             {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
-              className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-bg-base text-accent transition-all"
-              title="Editar"
-            >
-              <Edit2 size={14} />
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
-              className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-danger/10 text-danger transition-all"
-              title="Excluir"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
+        </div>
+        <div className="hidden sm:flex text-sm text-text-secondary items-center gap-2">
+          <span className="font-semibold text-accent">{tr.category}</span>
+        </div>
+        <div className={`hidden sm:block font-mono text-right font-bold ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
+          {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </div>
+        <div className="hidden sm:block text-sm text-text-dim uppercase tracking-wider font-semibold text-center">{tr.method || 'Manual'}</div>
+        <div className="hidden lg:flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-glass-border pt-4 sm:pt-0">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
+            className="flex-1 sm:flex-none p-3 rounded-xl bg-bg-base/50 hover:bg-bg-base text-accent transition-all flex items-center justify-center gap-2"
+          >
+            <Edit2 size={16} />
+            <span className="sm:hidden font-bold text-xs uppercase tracking-wider">Editar</span>
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
+            className="flex-1 sm:flex-none p-3 rounded-xl bg-bg-base/50 hover:bg-danger/10 text-danger transition-all flex items-center justify-center gap-2"
+          >
+            <Trash2 size={16} />
+            <span className="sm:hidden font-bold text-xs uppercase tracking-wider">Excluir</span>
+          </button>
         </div>
       </motion.div>
-    );
-  }
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-[100px_1fr_120px_120px_100px_80px] items-center p-4 rounded-[20px] bg-bg-base/30 hover:bg-bg-base/50 border border-glass-border transition-all group gap-4 cursor-pointer hover:-translate-x-1"
-    >
-      <div className="text-sm text-text-secondary font-mono">{tr.date}</div>
-      <div className="flex items-center gap-3 overflow-hidden">
-        <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-md group-hover:scale-110 transition-transform`}>
-          <Icon size={18} />
-        </div>
-        <div className="flex flex-col overflow-hidden">
-          <p className="font-bold text-[0.95rem] text-text-primary truncate">{tr.title}</p>
-          {tr.notes && <p className="text-[0.7rem] text-accent italic truncate">{tr.notes}</p>}
-          <p className="text-[0.7rem] text-text-secondary mt-0.5 truncate">
-            {tr.timestamp} • {tr.method || 'Manual'}
-          </p>
-        </div>
-      </div>
-      <div className="text-sm text-text-secondary flex items-center gap-2">
-        <span className="font-semibold text-accent">{tr.category}</span>
-        {tr.predicted && (
-          <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-accent/20 text-accent border border-accent/30 font-bold animate-pulse">
-            SUGESTÃO
-          </span>
-        )}
-      </div>
-      <div className={`font-mono text-right font-bold ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
-        {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-      </div>
-      <div className="text-xs text-text-secondary font-mono text-center">
-        {tr.method || 'Manual'}
-      </div>
-      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button 
-          onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
-          className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-bg-base text-accent transition-all"
-          title="Editar"
-        >
-          <Edit2 size={14} />
-        </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
-          className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-danger/10 text-danger transition-all"
-          title="Excluir"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -2504,20 +2789,23 @@ function GoalCalendar({ goals }: { goals: Goal[] }) {
 
 function StatCard({ label, value, color }: { label: string, value: string, color: string }) {
   return (
-    <div className="glass-panel p-6 flex flex-col gap-2">
-      <span className="text-text-secondary text-[0.7rem] font-bold uppercase tracking-wider">{label}</span>
-      <span className={`text-2xl font-extrabold ${color}`}>{value}</span>
+    <div className="glass-panel p-5 lg:p-6 flex flex-col gap-1 hover:shadow-xl transition-all">
+      <span className="text-[0.65rem] lg:text-[0.75rem] uppercase tracking-[1.5px] text-text-dim">{label}</span>
+      <div className={`text-xl lg:text-2xl font-mono font-bold ${color}`}>{value}</div>
     </div>
   );
 }
 
 function ActionButton({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick?: () => void }) {
   return (
-    <button onClick={onClick} className="action-btn">
-      <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shadow-inner">
+    <button 
+      onClick={onClick}
+      className="action-btn group h-full flex-col lg:flex-row text-center lg:text-left p-4 lg:p-5"
+    >
+      <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center group-hover:bg-white group-hover:text-accent transition-all shadow-sm">
         {icon}
       </div>
-      <span className="text-sm font-bold text-text-primary">{label}</span>
+      <span className="text-[0.75rem] lg:text-[0.85rem] font-bold uppercase tracking-wider leading-tight">{label}</span>
     </button>
   );
 }
