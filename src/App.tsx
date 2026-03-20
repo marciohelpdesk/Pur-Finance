@@ -78,6 +78,7 @@ interface Transaction {
   method: 'OCR' | 'Manual' | 'Fixed';
   icon: React.ReactNode;
   predicted?: boolean; // Flag for auto-suggested categories via OCR
+  notes?: string;
 }
 
 interface SubTask {
@@ -131,15 +132,15 @@ const getCategoryIcon = (category: string) => {
 
 // --- Mock Data ---
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: '1', title: 'Restaurante Gourmet', category: 'Alimentação', date: 'Hoje', timestamp: new Date().toISOString().split('T')[0], amount: -85.00, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação') },
-  { id: '2', title: 'Posto Shell', category: 'Transporte', date: 'Ontem', timestamp: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: -220.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte') },
-  { id: '3', title: 'Salário Mensal', category: 'Receita', date: '05 Out', timestamp: '2025-10-05', amount: 4340.00, type: 'income', method: 'Fixed', icon: getCategoryIcon('Receita') },
-  { id: '4', title: 'Mercado Central', category: 'Alimentação', date: '04 Out', timestamp: '2025-10-04', amount: -320.50, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação') },
-  { id: '5', title: 'Aluguel Outubro', category: 'Moradia', date: '01 Out', timestamp: '2025-10-01', amount: -1800.00, type: 'expense', method: 'Fixed', icon: getCategoryIcon('Moradia') },
+  { id: '1', title: 'Restaurante Gourmet', category: 'Alimentação', date: 'Hoje', timestamp: new Date().toISOString().split('T')[0], amount: -85.00, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Jantar com a família no final de semana.' },
+  { id: '2', title: 'Posto Shell', category: 'Transporte', date: 'Ontem', timestamp: new Date(Date.now() - 86400000).toISOString().split('T')[0], amount: -220.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte'), notes: 'Tanque cheio para viagem.' },
+  { id: '3', title: 'Salário Mensal', category: 'Receita', date: '05 Out', timestamp: '2025-10-05', amount: 4340.00, type: 'income', method: 'Fixed', icon: getCategoryIcon('Receita'), notes: 'Pagamento referente ao mês de Setembro.' },
+  { id: '4', title: 'Mercado Central', category: 'Alimentação', date: '04 Out', timestamp: '2025-10-04', amount: -320.50, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação'), notes: 'Compras do mês.' },
+  { id: '5', title: 'Aluguel Outubro', category: 'Moradia', date: '01 Out', timestamp: '2025-10-01', amount: -1800.00, type: 'expense', method: 'Fixed', icon: getCategoryIcon('Moradia'), notes: 'Aluguel do apartamento.' },
   { id: '6', title: 'Netflix', category: 'Lazer', date: '28 Set', timestamp: '2025-09-28', amount: -55.90, type: 'expense', method: 'Fixed', icon: getCategoryIcon('Lazer') },
   { id: '7', title: 'Uber Viagem', category: 'Transporte', date: '27 Set', timestamp: '2025-09-27', amount: -32.40, type: 'expense', method: 'Manual', icon: getCategoryIcon('Transporte') },
   { id: '8', title: 'Padaria Pão Quente', category: 'Alimentação', date: '26 Set', timestamp: '2025-09-26', amount: -12.50, type: 'expense', method: 'Manual', icon: getCategoryIcon('Alimentação') },
-  { id: '9', title: 'Freelance Design', category: 'Receita', date: '25 Set', timestamp: '2025-09-25', amount: 1200.00, type: 'income', method: 'Manual', icon: getCategoryIcon('Receita') },
+  { id: '9', title: 'Freelance Design', category: 'Receita', date: '25 Set', timestamp: '2025-09-25', amount: 1200.00, type: 'income', method: 'Manual', icon: getCategoryIcon('Receita'), notes: 'Projeto de logo para cliente X.' },
   { id: '10', title: 'Farmácia Saúde', category: 'Saúde', date: '24 Set', timestamp: '2025-09-24', amount: -45.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Saúde') },
   { id: '11', title: 'Cinema Shopping', category: 'Lazer', date: '23 Set', timestamp: '2025-09-23', amount: -60.00, type: 'expense', method: 'Manual', icon: getCategoryIcon('Lazer') },
   { id: '12', title: 'Supermercado Extra', category: 'Alimentação', date: '22 Set', timestamp: '2025-09-22', amount: -450.00, type: 'expense', method: 'OCR', icon: getCategoryIcon('Alimentação') },
@@ -461,7 +462,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  const handleAddTransaction = (title: string, amount: number, category: string, date: string, formattedDate: string, type: 'income' | 'expense', id?: string, method: 'OCR' | 'Manual' | 'Fixed' = 'Manual', predicted: boolean = false) => {
+  const handleAddTransaction = (title: string, amount: number, category: string, date: string, formattedDate: string, type: 'income' | 'expense', id?: string, method: 'OCR' | 'Manual' | 'Fixed' = 'Manual', predicted: boolean = false, notes?: string) => {
     if (id) {
       // Update existing
       const oldTr = transactions.find(t => t.id === id);
@@ -485,7 +486,8 @@ export default function App() {
         amount: type === 'expense' ? -amount : amount,
         type,
         icon: getCategoryIcon(category),
-        predicted: false
+        predicted: false,
+        notes: notes || oldTr.notes
       };
 
       setTransactions(prev => prev.map(t => t.id === id ? updatedTransaction : t));
@@ -509,7 +511,8 @@ export default function App() {
         type,
         method,
         icon: getCategoryIcon(category),
-        predicted
+        predicted,
+        notes
       };
       setTransactions([newTransaction, ...transactions]);
       if (type === 'expense') {
@@ -612,21 +615,10 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Liquid Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" style={{ filter: 'url(#goo)' }}>
-        <motion.div 
-          animate={{ x: mousePos.x * 0.5, y: mousePos.y * 0.5 }}
-          className="absolute w-[500px] h-[500px] -top-24 -left-24 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary blur-[60px] opacity-40 animate-blob" 
-        />
-        <motion.div 
-          animate={{ x: mousePos.x * 0.8, y: mousePos.y * 0.8 }}
-          className="absolute w-[400px] h-[400px] -bottom-12 -right-12 rounded-full bg-accent-liquid blur-[60px] opacity-40 animate-blob [animation-delay:-5s]" 
-        />
-        <motion.div 
-          animate={{ x: mousePos.x * 1.2, y: mousePos.y * 1.2 }}
-          className="absolute w-[300px] h-[300px] top-[40%] left-[60%] rounded-full bg-[#f43f5e] blur-[60px] opacity-40 animate-blob [animation-delay:-10s]" 
-        />
-      </div>
+      {/* BACKGROUND AQUEOUS */}
+      <div className="liquid-canvas"></div>
+      <div className="floating-orb w-[600px] h-[600px] -top-[300px] -left-[300px]"></div>
+      <div className="floating-orb w-[500px] h-[500px] -bottom-[250px] -right-[250px] [animation-delay:5s]"></div>
 
       {/* SVG Filter for Gooey Effect */}
       <svg xmlns="http://www.w3.org/2000/svg" version="1.1" className="hidden">
@@ -648,7 +640,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-bg/80 backdrop-blur-md"
+              className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -657,7 +649,7 @@ export default function App() {
               className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">
+                <h3 className="text-xl font-bold text-text-primary">
                   {editingTransaction ? 'Editar Transação' : (modalType === 'income' ? 'Adicionar Receita' : 'Adicionar Despesa')}
                 </h3>
                 <button 
@@ -665,7 +657,7 @@ export default function App() {
                     setIsModalOpen(false);
                     setEditingTransaction(null);
                   }}
-                  className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-bg-base/80 text-text-dim hover:text-accent transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -679,6 +671,7 @@ export default function App() {
                 const category = formData.get('category') as string;
                 const dateInput = formData.get('date') as string;
                 const type = formData.get('type') as 'income' | 'expense';
+                const notes = formData.get('notes') as string;
                 
                 let formattedDate = editingTransaction?.date || 'Hoje';
                 if (dateInput) {
@@ -688,7 +681,8 @@ export default function App() {
                 }
 
                 if (title && amount > 0) {
-                  handleAddTransaction(title, amount, category, dateInput, formattedDate, type, editingTransaction?.id);
+                  handleAddTransaction(title, amount, category, dateInput, formattedDate, type, editingTransaction?.id, 'Manual', false, notes);
+                  setIsModalOpen(false);
                 }
               }} className="space-y-5">
                 <div className="space-y-2">
@@ -701,7 +695,7 @@ export default function App() {
                     title="O título não pode estar vazio"
                     defaultValue={editingTransaction?.title || ''}
                     placeholder="Ex: Salário, Aluguel, Mercado..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -716,7 +710,7 @@ export default function App() {
                       required
                       defaultValue={editingTransaction ? Math.abs(editingTransaction.amount) : ''}
                       placeholder="0,00"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
 
@@ -725,7 +719,7 @@ export default function App() {
                     <select 
                       name="type"
                       defaultValue={editingTransaction?.type || modalType}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                     >
                       <option value="income">Receita</option>
                       <option value="expense">Despesa</option>
@@ -740,7 +734,7 @@ export default function App() {
                     type="date"
                     defaultValue={editingTransaction?.timestamp || new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors [color-scheme:dark]"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors [color-scheme:light]"
                   />
                 </div>
 
@@ -749,7 +743,7 @@ export default function App() {
                   <select 
                     name="category"
                     defaultValue={editingTransaction?.category || (modalType === 'income' ? 'Receita' : 'Alimentação')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   >
                     <option value="Receita">Receita</option>
                     <option value="Alimentação">Alimentação</option>
@@ -768,9 +762,20 @@ export default function App() {
                   </select>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-text-dim uppercase tracking-wider ml-1">Observações</label>
+                  <textarea 
+                    name="notes"
+                    defaultValue={editingTransaction?.notes || ''}
+                    placeholder="Adicione detalhes extras..."
+                    rows={2}
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors resize-none"
+                  />
+                </div>
+
                 <button 
                   type="submit"
-                  className={`w-full py-4 rounded-xl font-bold text-bg transition-all shadow-lg ${
+                  className={`w-full py-4 rounded-xl font-bold text-white transition-all shadow-lg ${
                     modalType === 'income' 
                       ? 'bg-success hover:shadow-success/20' 
                       : 'bg-danger hover:shadow-danger/20'
@@ -791,7 +796,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsManualOCRModalOpen(false)}
-              className="absolute inset-0 bg-bg/80 backdrop-blur-md"
+              className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -800,13 +805,13 @@ export default function App() {
               className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold flex items-center gap-2">
-                  <FileText size={20} className="text-accent-liquid" />
+                <h3 className="text-xl font-bold flex items-center gap-2 text-text-primary">
+                  <FileText size={20} className="text-accent" />
                   Entrada Manual de Recibo
                 </h3>
                 <button 
                   onClick={() => setIsManualOCRModalOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-bg-base/80 text-text-dim hover:text-accent transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -842,7 +847,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     placeholder="Ex: STARBUCKS COFFEE, MERCADO EXTRA..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -855,13 +860,13 @@ export default function App() {
                     min="0.01"
                     required
                     placeholder="0,00"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-4 rounded-xl font-bold text-bg bg-accent-liquid shadow-lg shadow-accent-liquid/20 hover:shadow-accent-liquid/40 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-all flex items-center justify-center gap-2"
                 >
                   <CheckSquare size={18} />
                   PROCESSAR RECIBO
@@ -879,7 +884,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOcrResult(null)}
-              className="absolute inset-0 bg-bg/80 backdrop-blur-md"
+              className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -888,10 +893,10 @@ export default function App() {
               className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Confirmar Transação</h3>
+                <h3 className="text-xl font-bold text-text-primary">Confirmar Transação</h3>
                 <button 
                   onClick={() => setOcrResult(null)}
-                  className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-bg-base/80 text-text-dim hover:text-accent transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -901,9 +906,9 @@ export default function App() {
               </p>
               
               {ocrResult.rawTitle && ocrResult.rawAmount !== undefined && (
-                <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="mb-6 p-4 bg-bg-base/50 rounded-xl border border-glass-border">
                   <h4 className="text-xs font-bold text-text-dim uppercase tracking-wider mb-2">Texto Original Extraído</h4>
-                  <p className="text-sm text-white font-mono">{ocrResult.rawTitle} - R$ {Math.abs(ocrResult.rawAmount).toFixed(2)}</p>
+                  <p className="text-sm text-text-primary font-mono">{ocrResult.rawTitle} - R$ {Math.abs(ocrResult.rawAmount).toFixed(2)}</p>
                 </div>
               )}
               
@@ -928,7 +933,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     defaultValue={ocrResult.title}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -942,7 +947,7 @@ export default function App() {
                       min="0.01"
                       required
                       defaultValue={Math.abs(ocrResult.amount)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
 
@@ -951,7 +956,7 @@ export default function App() {
                     <select 
                       name="category"
                       defaultValue={ocrResult.category}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                      className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                     >
                       {CATEGORIES.map(cat => (
                         <option key={cat.name} value={cat.name}>{cat.name}</option>
@@ -962,7 +967,7 @@ export default function App() {
 
                 <button 
                   type="submit"
-                  className="w-full py-4 rounded-xl font-bold text-bg bg-accent-liquid shadow-lg shadow-accent-liquid/20 hover:shadow-accent-liquid/40 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-all flex items-center justify-center gap-2"
                 >
                   <CheckSquare size={18} />
                   CONFIRMAR E SALVAR
@@ -980,7 +985,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsGoalModalOpen(false)}
-              className="absolute inset-0 bg-bg/80 backdrop-blur-md"
+              className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -989,10 +994,10 @@ export default function App() {
               className="relative w-full max-w-md glass-panel p-8 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Nova Meta</h3>
+                <h3 className="text-xl font-bold text-text-primary">Nova Meta</h3>
                 <button 
                   onClick={() => setIsGoalModalOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-bg-base/80 text-text-dim hover:text-accent transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -1019,7 +1024,7 @@ export default function App() {
                     pattern=".*\S+.*"
                     title="O título não pode estar vazio"
                     placeholder="Ex: Viagem, Carro Novo, Reserva..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -1032,7 +1037,7 @@ export default function App() {
                     min="0.01"
                     required
                     placeholder="0,00"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-liquid/50 transition-colors"
+                    className="w-full bg-bg-base/50 border border-glass-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -1064,7 +1069,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDeleteConfirmOpen(false)}
-              className="absolute inset-0 bg-bg/90 backdrop-blur-md"
+              className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1076,21 +1081,21 @@ export default function App() {
                 <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger mb-4">
                   <AlertTriangle size={32} />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Excluir Transação?</h3>
+                <h3 className="text-xl font-bold mb-2 text-text-primary">Excluir Transação?</h3>
                 <p className="text-text-dim text-sm mb-6">
-                  Você está prestes a excluir a transação <span className="text-white font-semibold">"{transactionToDelete?.title}"</span>. Esta ação não pode ser desfeita.
+                  Você está prestes a excluir a transação <span className="text-accent font-semibold">"{transactionToDelete?.title}"</span>. Esta ação não pode ser desfeita.
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button 
                     onClick={() => setIsDeleteConfirmOpen(false)}
-                    className="py-3 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                    className="py-3 rounded-xl font-bold text-text-primary bg-bg-base/50 hover:bg-bg-base/80 transition-all border border-glass-border"
                   >
                     CANCELAR
                   </button>
                   <button 
                     onClick={confirmDelete}
-                    className="py-3 rounded-xl font-bold text-bg bg-danger shadow-lg shadow-danger/20 hover:shadow-danger/40 transition-all"
+                    className="py-3 rounded-xl font-bold text-white bg-danger shadow-lg shadow-danger/20 hover:shadow-danger/40 transition-all"
                   >
                     EXCLUIR
                   </button>
@@ -1101,6 +1106,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* BACKGROUND AQUEOUS */}
+      <div className="liquid-canvas"></div>
+      <div className="floating-orb w-[600px] h-[600px] -top-[300px] -left-[300px]"></div>
+      <div className="floating-orb w-[500px] h-[500px] -bottom-[250px] -right-[250px] [animation-delay:5s]"></div>
+
       <div className={`app-container grid gap-6 p-6 max-w-[1600px] mx-auto h-screen transition-all duration-500
         grid-cols-1 
         lg:grid-cols-[280px_1fr] 
@@ -1109,17 +1119,12 @@ export default function App() {
         
         {/* Sidebar */}
         <aside className="sidebar flex flex-col gap-10 lg:row-span-2">
-          <div className="logo text-2xl font-extrabold tracking-tighter flex items-center gap-3 bg-gradient-to-r from-white to-text-dim bg-clip-text text-transparent">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="14" stroke="url(#logo-grad)" strokeWidth="4"/>
-              <path d="M16 8V24M10 14L16 8L22 14" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-              <defs>
-                <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32">
-                  <stop stopColor="#a855f7"/>
-                  <stop offset="1" stopColor="#22d3ee"/>
-                </linearGradient>
-              </defs>
-            </svg>
+          <div className="logo text-2xl font-extrabold tracking-tighter flex items-center gap-3 text-text-primary">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent-liquid shadow-[0_4px_12px_rgba(99,102,241,0.3)] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                <path d="M16 8V24M10 14L16 8L22 14" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             PUR FINANCE
           </div>
           
@@ -1173,7 +1178,7 @@ export default function App() {
         </aside>
 
         {/* Main Content Area */}
-        <div className={`main-content-area ${activeView === 'Dashboard' ? 'contents' : 'lg:col-start-2 lg:row-start-1 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-glass-border'}`}>
+        <div className={`main-content-area ${activeView === 'Dashboard' ? 'contents' : 'lg:col-start-2 lg:row-span-2 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-glass-border'}`}>
           <main className={`main-content flex flex-col gap-6 ${activeView === 'Dashboard' ? 'lg:col-start-2 lg:row-start-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-glass-border' : ''}`}>
           <AnimatePresence mode="wait">
             {activeView === 'Dashboard' && (
@@ -1602,7 +1607,34 @@ export default function App() {
                     </div>
                     <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col gap-6">
                       <div>
-                        <h3 className="text-lg font-semibold mb-4">Orçamento por Categoria</h3>
+                        <h3 className="text-lg font-semibold mb-4">Gastos por Categoria</h3>
+                        <div className="h-[250px] w-full mb-6">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={CATEGORY_SPENDING}
+                                dataKey="amount"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                labelLine={false}
+                              >
+                                {CATEGORY_SPENDING.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                                contentStyle={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                                itemStyle={{ color: '#fff' }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
                         <div className="space-y-4">
                           <BudgetItem label="Alimentação" spent={840} limit={1200} />
                           <BudgetItem label="Transporte" spent={450} limit={600} />
@@ -1933,90 +1965,90 @@ export default function App() {
           </main>
 
           {/* Right Panel */}
-          <aside className={`right-panel ${activeView === 'Dashboard' ? 'xl:col-start-3 xl:row-start-1 lg:col-start-2 lg:row-start-2' : 'lg:col-start-2 lg:row-start-2'} grid grid-cols-1 ${activeView === 'Dashboard' ? 'xl:flex xl:flex-col lg:grid-cols-2' : 'xl:grid-cols-2'} gap-6 ${activeView !== 'Dashboard' ? 'pb-10' : ''}`}>
-          
-          <div className="glass-panel p-7">
-            <h2 className="text-lg font-semibold text-white mb-5">Próximas Contas</h2>
-            
-            <AlertCard 
-              title="VENCE EM 2 DIAS" 
-              label="Netflix Premium" 
-              value="R$ 55,90" 
-              color="border-danger" 
-              titleColor="text-red-300" 
-            />
+          {activeView === 'Dashboard' && (
+            <aside className={`right-panel xl:col-start-3 xl:row-start-1 lg:col-start-2 lg:row-start-2 grid grid-cols-1 xl:flex xl:flex-col lg:grid-cols-2 gap-6`}>
+              <div className="glass-panel p-7">
+                <h2 className="text-lg font-semibold text-white mb-5">Próximas Contas</h2>
+                
+                <AlertCard 
+                  title="VENCE EM 2 DIAS" 
+                  label="Netflix Premium" 
+                  value="R$ 55,90" 
+                  color="border-danger" 
+                  titleColor="text-red-300" 
+                />
 
-            <AlertCard 
-              title="VENCE EM 5 DIAS" 
-              label="Aluguel Outubro" 
-              value="R$ 1.800,00" 
-              color="border-amber-500/20" 
-              titleColor="text-amber-300" 
-              bg="bg-amber-500/5"
-            />
-          </div>
-
-          <div className="glass-panel p-7 flex-grow">
-            <h2 className="text-lg font-semibold text-white mb-6">Gastos por Categoria</h2>
-            
-            <div className="flex flex-col gap-6">
-              {CATEGORY_SPENDING.map((cat) => {
-                const config = CATEGORY_CONFIG[cat.name as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG['Outros'];
-                const Icon = config.icon;
-                return (
-                  <div key={cat.name} className="category-item-wrap">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${config.bg} ${config.color}`}>
-                          <Icon size={12} />
-                        </div>
-                        <span className="text-sm">{cat.name}</span>
-                      </div>
-                      <span className="font-mono text-xs">R$ {cat.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="h-1.5 bg-glass-border rounded-full w-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${cat.percentage}%` }}
-                        className="h-full rounded-full" 
-                        style={{ backgroundColor: cat.color, boxShadow: `0 0 10px ${cat.color}` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-10 flex flex-col items-center">
-              <div className="relative w-32 h-32">
-                <svg width="128" height="128" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                  <motion.circle 
-                    cx="50" cy="50" r="40" 
-                    fill="none" 
-                    stroke="url(#liquid-grad)" 
-                    strokeWidth="8" 
-                    strokeDasharray="180 251" 
-                    strokeLinecap="round" 
-                    transform="rotate(-90 50 50)"
-                    initial={{ strokeDashoffset: 251 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                  />
-                  <text x="50" y="55" textAnchor="middle" fill="white" fontSize="12" fontWeight="800" fontFamily="Inter">72% GAUS</text>
-                  <defs>
-                    <linearGradient id="liquid-grad" x1="0" y1="0" x2="1" y2="1">
-                      <stop stopColor="#22d3ee" />
-                      <stop offset="1" stopColor="#a855f7" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <AlertCard 
+                  title="VENCE EM 5 DIAS" 
+                  label="Aluguel Outubro" 
+                  value="R$ 1.800,00" 
+                  color="border-amber-500/20" 
+                  titleColor="text-amber-300" 
+                  bg="bg-amber-500/5"
+                />
               </div>
-              <p className="text-[0.75rem] text-text-dim mt-3">Projeção de saúde financeira</p>
-            </div>
-          </div>
 
-        </aside>
+              <div className="glass-panel p-7 flex-grow">
+                <h2 className="text-lg font-semibold text-white mb-6">Gastos por Categoria</h2>
+                
+                <div className="flex flex-col gap-6">
+                  {CATEGORY_SPENDING.map((cat) => {
+                    const config = CATEGORY_CONFIG[cat.name as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG['Outros'];
+                    const Icon = config.icon;
+                    return (
+                      <div key={cat.name} className="category-item-wrap">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-md flex items-center justify-center ${config.bg} ${config.color}`}>
+                              <Icon size={12} />
+                            </div>
+                            <span className="text-sm">{cat.name}</span>
+                          </div>
+                          <span className="font-mono text-xs">R$ {cat.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="h-1.5 bg-glass-border rounded-full w-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${cat.percentage}%` }}
+                            className="h-full rounded-full" 
+                            style={{ backgroundColor: cat.color, boxShadow: `0 0 10px ${cat.color}` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-10 flex flex-col items-center">
+                  <div className="relative w-32 h-32">
+                    <svg width="128" height="128" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                      <motion.circle 
+                        cx="50" cy="50" r="40" 
+                        fill="none" 
+                        stroke="url(#liquid-grad)" 
+                        strokeWidth="8" 
+                        strokeDasharray="180 251" 
+                        strokeLinecap="round" 
+                        transform="rotate(-90 50 50)"
+                        initial={{ strokeDashoffset: 251 }}
+                        animate={{ strokeDashoffset: 0 }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                      />
+                      <text x="50" y="55" textAnchor="middle" fill="white" fontSize="12" fontWeight="800" fontFamily="Inter">72% GAUS</text>
+                      <defs>
+                        <linearGradient id="liquid-grad" x1="0" y1="0" x2="1" y2="1">
+                          <stop stopColor="#22d3ee" />
+                          <stop offset="1" stopColor="#a855f7" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  <p className="text-[0.75rem] text-text-dim mt-3">Projeção de saúde financeira</p>
+                </div>
+              </div>
+            </aside>
+          )}
         </div>
       </div>
 
@@ -2030,8 +2062,8 @@ export default function App() {
             className="ocr-loader"
           >
             <div className="liquid-spinner"></div>
-            <p className="font-mono tracking-[2px] text-accent-liquid">PROCESSANDO IMAGEM COM IA...</p>
-            <p className="text-sm text-text-dim">Extraindo valores, datas e categorias via Vision API</p>
+            <p className="font-mono tracking-[2px] text-accent font-bold">PROCESSANDO IMAGEM COM IA...</p>
+            <p className="text-sm text-text-secondary mt-2">Extraindo valores, datas e categorias via Vision API</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2045,25 +2077,24 @@ function NavItem({ icon, label, active = false, onClick, rightIcon }: { icon: Re
   return (
     <button 
       onClick={onClick}
-      className={`flex items-center justify-between gap-3 px-5 py-3.5 rounded-2xl font-medium transition-all w-full text-left group ${
-        active 
-          ? 'bg-white/8 text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' 
-          : 'text-text-dim hover:bg-white/4 hover:text-white'
-      }`}
+      className={`nav-item ${active ? 'active' : ''} w-full text-left group`}
     >
-      <div className="flex items-center gap-3">
-        <motion.div 
-          animate={active ? { scale: 1.1, color: '#22d3ee' } : { scale: 1 }}
-          className={`${active ? 'text-accent-liquid' : 'group-hover:text-white transition-colors'}`}
-        >
+      <div className="flex items-center gap-4">
+        <div className={`${active ? 'text-accent' : 'text-text-secondary group-hover:text-accent transition-colors'}`}>
           {icon}
-        </motion.div>
-        {label}
+        </div>
+        <span className="text-[0.95rem]">{label}</span>
       </div>
       {rightIcon && (
-        <div className="text-text-dim group-hover:text-accent-liquid transition-colors opacity-40 group-hover:opacity-100">
+        <div className="text-text-dim group-hover:text-accent transition-colors opacity-40 group-hover:opacity-100">
           {rightIcon}
         </div>
+      )}
+      {active && (
+        <motion.div 
+          layoutId="active-nav-dot"
+          className="ml-auto w-1.5 h-1.5 rounded-full bg-accent"
+        />
       )}
     </button>
   );
@@ -2083,40 +2114,40 @@ function TransactionRow({ tr, compact = false, onEdit, onDelete }: {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between p-4 rounded-[20px] bg-white/2 hover:bg-white/5 border border-transparent hover:border-glass-border transition-all group"
+        className="flex items-center justify-between p-4 rounded-[20px] bg-bg-base/30 hover:bg-bg-base/50 border border-glass-border transition-all group cursor-pointer hover:-translate-x-1"
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.bg} ${config.color} border border-white/5 group-hover:scale-110 transition-transform`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-lg group-hover:scale-110 transition-transform`}>
             <Icon size={20} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-[0.95rem]">{tr.title}</p>
+              <p className="font-bold text-[0.95rem] text-text-primary">{tr.title}</p>
               {tr.predicted && (
-                <span className="text-[0.5rem] px-1 py-0.2 rounded bg-accent-liquid/20 text-accent-liquid border border-accent-liquid/30 font-bold">
+                <span className="text-[0.5rem] px-1 py-0.2 rounded bg-accent/20 text-accent border border-accent/30 font-bold">
                   SUGESTÃO
                 </span>
               )}
             </div>
-            <p className="text-[0.75rem] text-text-dim mt-0.5">{tr.date} • {tr.category}</p>
-            <p className="text-[0.65rem] text-text-dim/70 mt-0.5">{tr.timestamp} • {tr.method || 'Manual'}</p>
+            <p className="text-[0.75rem] text-text-secondary mt-0.5">{tr.date} • {tr.category}</p>
+            {tr.notes && <p className="text-[0.65rem] text-accent mt-0.5 italic truncate max-w-[150px]">{tr.notes}</p>}
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className={`font-mono text-right font-medium ${tr.type === 'expense' ? 'text-[#fda4af]' : 'text-success'}`}>
+          <div className={`font-mono text-right font-bold ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
             {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <div className="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button 
               onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all"
+              className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-bg-base text-accent transition-all"
               title="Editar"
             >
               <Edit2 size={14} />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
-              className="p-1.5 rounded-lg bg-danger/10 hover:bg-danger/20 text-danger transition-all"
+              className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-danger/10 text-danger transition-all"
               title="Excluir"
             >
               <Trash2 size={14} />
@@ -2131,51 +2162,46 @@ function TransactionRow({ tr, compact = false, onEdit, onDelete }: {
     <motion.div 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-[100px_1fr_120px_120px_100px_80px] items-center p-4 rounded-[20px] bg-white/2 hover:bg-white/5 border border-transparent hover:border-glass-border transition-all group gap-4"
+      className="grid grid-cols-[100px_1fr_120px_120px_100px_80px] items-center p-4 rounded-[20px] bg-bg-base/30 hover:bg-bg-base/50 border border-glass-border transition-all group gap-4 cursor-pointer hover:-translate-x-1"
     >
-      <div className="text-sm text-text-dim font-mono">{tr.date}</div>
+      <div className="text-sm text-text-secondary font-mono">{tr.date}</div>
       <div className="flex items-center gap-3 overflow-hidden">
-        <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${config.bg} ${config.color} border border-white/5 group-hover:scale-110 transition-transform`}>
-          <Icon size={16} />
+        <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-accent to-accent-liquid text-white shadow-md group-hover:scale-110 transition-transform`}>
+          <Icon size={18} />
         </div>
         <div className="flex flex-col overflow-hidden">
-          <p className="font-semibold text-[0.95rem] truncate">{tr.title}</p>
-          <p className="text-[0.7rem] text-text-dim mt-0.5 truncate">
+          <p className="font-bold text-[0.95rem] text-text-primary truncate">{tr.title}</p>
+          {tr.notes && <p className="text-[0.7rem] text-accent italic truncate">{tr.notes}</p>}
+          <p className="text-[0.7rem] text-text-secondary mt-0.5 truncate">
             {tr.timestamp} • {tr.method || 'Manual'}
           </p>
         </div>
       </div>
-      <div className="text-sm text-text-dim flex items-center gap-2">
-        <span className={`${config.color}`}>{tr.category}</span>
+      <div className="text-sm text-text-secondary flex items-center gap-2">
+        <span className="font-semibold text-accent">{tr.category}</span>
         {tr.predicted && (
-          <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-accent-liquid/20 text-accent-liquid border border-accent-liquid/30 font-bold animate-pulse">
+          <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-accent/20 text-accent border border-accent/30 font-bold animate-pulse">
             SUGESTÃO
           </span>
         )}
       </div>
-      <div className={`font-mono text-right font-medium ${tr.type === 'expense' ? 'text-[#fda4af]' : 'text-success'}`}>
+      <div className={`font-mono text-right font-bold ${tr.type === 'expense' ? 'text-danger' : 'text-success'}`}>
         {tr.type === 'expense' ? '-' : '+'}R$ {Math.abs(tr.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
       </div>
-      <div className="flex justify-center">
-        <span className={`text-[0.6rem] px-2 py-0.5 rounded-full font-bold uppercase border ${
-          tr.method === 'OCR' ? 'bg-accent-liquid/10 text-accent-liquid border-accent-liquid/20' : 
-          tr.method === 'Manual' ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/20' : 
-          'bg-white/10 text-white border-white/20'
-        }`}>
-          {tr.method}
-        </span>
+      <div className="text-xs text-text-secondary font-mono text-center">
+        {tr.method || 'Manual'}
       </div>
-      <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
           onClick={(e) => { e.stopPropagation(); onEdit?.(tr); }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all"
+          className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-bg-base text-accent transition-all"
           title="Editar"
         >
           <Edit2 size={14} />
         </button>
         <button 
           onClick={(e) => { e.stopPropagation(); onDelete?.(tr.id); }}
-          className="p-1.5 rounded-lg bg-danger/10 hover:bg-danger/20 text-danger transition-all"
+          className="p-1.5 rounded-lg bg-bg-base/50 hover:bg-danger/10 text-danger transition-all"
           title="Excluir"
         >
           <Trash2 size={14} />
@@ -2222,17 +2248,17 @@ function GoalItem({ goal, onToggleSubTask, onAddSubTask, onComplete }: {
         
         {goal.dueDate && (
           <div className="flex items-center gap-1.5 text-[10px] text-text-dim mb-2 uppercase tracking-wider font-bold">
-            <Clock size={10} className="text-accent-liquid" />
-            {goal.completed ? 'Concluída em: ' : 'Vence em: '} <span className="text-white">{formatDate(goal.dueDate)}</span>
+            <Clock size={10} className="text-accent" />
+            {goal.completed ? 'Concluída em: ' : 'Vence em: '} <span className="text-text-primary">{formatDate(goal.dueDate)}</span>
           </div>
         )}
 
-        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-2 bg-bg-base/50 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
-            className="h-full rounded-full shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-            style={{ backgroundColor: goal.completed ? '#4b5563' : goal.color }}
+            className="h-full rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+            style={{ backgroundColor: goal.completed ? '#94a3b8' : goal.color }}
           />
         </div>
       </div>
@@ -2243,7 +2269,7 @@ function GoalItem({ goal, onToggleSubTask, onAddSubTask, onComplete }: {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden pl-4 border-l border-white/10 space-y-3"
+            className="overflow-hidden pl-4 border-l border-glass-border space-y-3"
           >
             <div className="space-y-2">
               {goal.subTasks.map(st => (
@@ -2254,15 +2280,15 @@ function GoalItem({ goal, onToggleSubTask, onAddSubTask, onComplete }: {
                 >
                   <div className="flex items-center gap-3">
                     {st.completed ? (
-                      <CheckSquare size={16} className="text-accent-liquid" />
+                      <CheckSquare size={16} className="text-accent" />
                     ) : (
-                      <Square size={16} className="text-text-dim group-hover:text-white transition-colors" />
+                      <Square size={16} className="text-text-dim group-hover:text-accent transition-colors" />
                     )}
-                    <span className={`text-sm transition-all ${st.completed ? 'text-text-dim line-through' : 'text-white'}`}>
+                    <span className={`text-sm transition-all ${st.completed ? 'text-text-dim line-through' : 'text-text-primary'}`}>
                       {st.title}
                     </span>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.completed ? 'bg-success/10 text-success' : 'bg-white/5 text-text-dim'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.completed ? 'bg-success/10 text-success' : 'bg-bg-base/50 text-text-dim'}`}>
                     {st.completed ? 'CONCLUÍDO' : 'PENDENTE'}
                   </span>
                 </div>
@@ -2276,7 +2302,7 @@ function GoalItem({ goal, onToggleSubTask, onAddSubTask, onComplete }: {
                   value={newSubTask}
                   onChange={(e) => setNewSubTask(e.target.value)}
                   placeholder="Nova subtarefa..."
-                  className="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent-liquid/50"
+                  className="flex-grow bg-bg-base/50 border border-glass-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && newSubTask.trim()) {
                       onAddSubTask(newSubTask);
@@ -2291,7 +2317,7 @@ function GoalItem({ goal, onToggleSubTask, onAddSubTask, onComplete }: {
                       setNewSubTask('');
                     }
                   }}
-                  className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all"
+                  className="p-1.5 rounded-lg bg-bg-base/80 text-text-primary hover:bg-bg-base hover:text-accent transition-all"
                 >
                   <Plus size={14} />
                 </button>
@@ -2318,14 +2344,14 @@ function BudgetItem({ label, spent, limit }: { label: string, spent: number, lim
   return (
     <div>
       <div className="flex justify-between text-sm mb-2">
-        <span>{label}</span>
-        <span className="font-mono">R$ {spent} de R$ {limit}</span>
+        <span className="text-text-primary">{label}</span>
+        <span className="font-mono text-text-dim">R$ {spent} de R$ {limit}</span>
       </div>
-      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-2 bg-bg-base/50 rounded-full overflow-hidden">
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${percent}%` }}
-          className={`h-full rounded-full ${percent > 90 ? 'bg-danger' : 'bg-accent-liquid'}`}
+          className={`h-full rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)] ${percent > 90 ? 'bg-danger' : 'bg-accent'}`}
         />
       </div>
     </div>
@@ -2478,33 +2504,32 @@ function GoalCalendar({ goals }: { goals: Goal[] }) {
 
 function StatCard({ label, value, color }: { label: string, value: string, color: string }) {
   return (
-    <div className="glass-panel p-6">
-      <span className="text-[0.75rem] uppercase tracking-[1.5px] text-text-dim mb-2 block">{label}</span>
-      <span className={`text-2xl font-mono font-semibold ${color}`}>{value}</span>
+    <div className="glass-panel p-6 flex flex-col gap-2">
+      <span className="text-text-secondary text-[0.7rem] font-bold uppercase tracking-wider">{label}</span>
+      <span className={`text-2xl font-extrabold ${color}`}>{value}</span>
     </div>
   );
 }
 
 function ActionButton({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick?: () => void }) {
   return (
-    <button 
-      onClick={onClick}
-      className="h-[120px] rounded-3xl border-2 border-dashed border-glass-border bg-transparent text-text-main cursor-pointer transition-all duration-400 hover:border-accent-liquid hover:bg-accent-liquid/5 hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center gap-3 font-semibold text-sm"
-    >
-      <span className="opacity-70">{icon}</span>
-      {label}
+    <button onClick={onClick} className="action-btn">
+      <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shadow-inner">
+        {icon}
+      </div>
+      <span className="text-sm font-bold text-text-primary">{label}</span>
     </button>
   );
 }
 
 function AlertCard({ title, label, value, color, titleColor, bg = "bg-danger/5" }: any) {
   return (
-    <div className={`relative p-5 rounded-3xl border border-white/5 mb-3 overflow-hidden ${bg}`}>
+    <div className={`relative p-5 rounded-3xl border border-glass-border mb-3 overflow-hidden ${bg}`}>
       <div className={`absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full ${color.replace('border-', 'bg-')}`}></div>
       <p className={`text-[0.85rem] font-bold mb-1 ${titleColor}`}>{title}</p>
       <div className="flex justify-between items-center">
         <span className="text-[0.8rem] text-text-dim">{label}</span>
-        <span className="font-mono text-sm">{value}</span>
+        <span className="font-mono text-sm text-text-primary">{value}</span>
       </div>
     </div>
   );
